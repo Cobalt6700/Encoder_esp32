@@ -10,10 +10,13 @@
 #include "WProgram.h"
 #endif
 
+#define STEPPPS 4
+
 // Rotary Encocer
 #define Encoder_esp32_DEFAULT_A_PIN 25
 #define Encoder_esp32_DEFAULT_B_PIN 26
-#define Encoder_esp32_DEFAULT_STEPS 1
+#define Encoder_esp32_DEFAULT_STEPS STEPPPS
+// #define Encoder_esp32_DEFAULT_STEPS 4
 
 class Encoder_esp32
 {
@@ -26,6 +29,7 @@ private:
 #endif
 	volatile long encoder0Pos = 0;
 
+	bool respectLimits = false;
 	bool _circleValues = false;
 	bool isEnabled = true;
 	uint8_t encoderAPin = Encoder_esp32_DEFAULT_A_PIN;
@@ -43,7 +47,13 @@ private:
 	int8_t old_AB;
 	long lastReadEncoder0Pos;
 
-	int8_t enc_states[16] = {0, -1, 1, 0, 1, 0, 0, -1, -1, 0, 0, 1, 0, 1, -1, 0};
+	#if STEPPPS == 4
+		int8_t enc_states[16] = {0, -1, 1, 0, 1, 0, 0, -1, -1, 0, 0, 1, 0, 1, -1, 0};
+	#elif STEPPPS == 1
+		// int8_t enc_states[16] = {0, -2, 2, 0, 2, 0, 0, -2, -2, 0, 0, 2, 0, 2, -2, 0};
+		int8_t enc_states[16] = {0, -4, 4, 0, 4, 0, 0, -4, -4, 0, 0, 4, 0, 4, -4, 0};
+	#endif
+	 
 	void (*ISR_callback)();
 
 public:
@@ -54,7 +64,7 @@ public:
 		);
 	void setBoundaries(long minValue = -100, long maxValue = 100, bool circleValues = false);
 	int correctionOffset=2;
-	bool areEncoderPinsPulldownforEsp32 = true;
+	bool areEncoderPinsPulldownforEsp32 = false;//true;
 #if defined(ESP8266)
 	ICACHE_RAM_ATTR void readEncoder_ISR();
 	ICACHE_RAM_ATTR void readButton_ISR();
@@ -67,11 +77,13 @@ public:
 	void setup(void (*ISR_callback)(void));
 	void begin();
 	void reset(long newValue = 0);
+	// int32_t readAndReset(long newValue_);
 	int32_t readAndReset();
 	void enable();
 	void disable();
 	long readEncoder();
 	void setEncoderValue(long newValue);
+	long encoderChanged();
 	
 };
 #endif
